@@ -15,5 +15,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // dateStr: 日期字符串
   // data: 要保存的数据对象
   // 返回: Promise，解析为保存操作的结果
+  // 保存指定日期的数据
+  // dateStr: 日期字符串
+  // data: 要保存的数据对象
+  // 返回: Promise，解析为保存操作的结果
   saveDayData: (dateStr, data) => ipcRenderer.invoke('save-day-data', dateStr, data),
+
+  // 加载重复任务配置
+  // 返回: Promise，解析为重复任务配置数组
+  loadRecurringConfigs: () => ipcRenderer.invoke('load-recurring-configs'),
+
+  // 保存重复任务配置
+  // configs: 重复任务配置数组
+  // 返回: Promise，解析为保存操作的结果
+  saveRecurringConfigs: (configs) => ipcRenderer.invoke('save-recurring-configs', configs),
 });

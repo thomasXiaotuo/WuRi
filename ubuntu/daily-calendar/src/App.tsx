@@ -14,9 +14,10 @@ import {
   SLOT_HEIGHT,
   slotToTime,
   WEEKDAY_NAMES,
+  RecurringConfig,
 } from './types';
 import { loadDayData, saveDayData, loadRecurringConfigs, saveRecurringConfigs } from './utils/storage';
-import TaskModal from './components/TaskModal';
+import TaskModal, { RecurringAction } from './components/TaskModal';
 import DatePicker from './components/DatePicker';
 
 // SVG 图标组件 define
@@ -188,24 +189,95 @@ export default function App() {
   };
 
   // 保存任务（新建或更新）
-  const handleSaveTask = async (task: CalendarTask, targetDateStr: string) => {
-    // 检查是否是新建重复任务
-    if (task.recurringConfig) {
-      // 1. 加载现有规则
+  const handleSaveTask = async (task: CalendarTask, targetDateStr: string, action?: RecurringAction) => {
+    // 1. 新建重复任务 (task.recurringConfig 存在且没有 action，或者 action 不相关)
+    // 注意：如果是在编辑现有重复任务且选择了 action，则不走这里，而是走下面的 action 逻辑
+    if (task.recurringConfig && !action && !task.recurringId) {
       const configs = await loadRecurringConfigs();
-      // 2. 添加新规则
       const newConfigs = [...configs, task.recurringConfig];
-      // 3. 保存
       await saveRecurringConfigs(newConfigs);
-
-      // 4. 重载当前周数据以显示新生成的任务
       await loadAllData();
-
       setShowModal(false);
       setEditingTask(null);
       return;
     }
 
+    // 2. 处理重复任务的修改 (action 存在)
+    if (action && task.recurringId) {
+      const configs = await loadRecurringConfigs();
+      const configIndex = configs.findIndex(c => c.id === task.recurringId);
+      if (configIndex === -1) return; // Should not happen
+
+      if (action === 'single') {
+        // 仅修改当前实例
+        // A. 将当前日期添加到 excludeDates
+        const updatedConfigs = [...configs];
+        const excludeDates = updatedConfigs[configIndex].excludeDates || [];
+        updatedConfigs[configIndex] = {
+          ...updatedConfigs[configIndex],
+          excludeDates: [...excludeDates, targetDateStr]
+        };
+        await saveRecurringConfigs(updatedConfigs);
+
+        // B. 将修改后的任务保存为当前日期的普通单次任务
+        // 去除 recurringId 和 recurringConfig，生成新 ID
+        const newTask = {
+          ...task,
+          id: generateId(),
+          recurringId: undefined,
+          recurringConfig: undefined
+        };
+
+        // 保存单次任务到 storage
+        const currentData = weekDataMap[targetDateStr] || createEmptyDayData(targetDateStr);
+        const newData = { ...currentData, tasks: [...currentData.tasks, newTask] };
+        await saveDayData(targetDateStr, newData);
+
+      } else if (action === 'future') {
+        // 修改此日程及之后所有
+        // A. 结束旧规则：设置 endDate 为前一天 (或 targetDateStr 的前一天)
+        // 计算前一天
+        const d = new Date(targetDateStr);
+        d.setDate(d.getDate() - 1);
+        const prevDateStr = formatDateStr(d);
+
+        const updatedConfigs = [...configs];
+        updatedConfigs[configIndex] = {
+          ...updatedConfigs[configIndex],
+          endDate: prevDateStr
+        };
+
+        // B. 创建新规则：从 targetDateStr 开始
+        const newConfigId = generateId();
+        const newConfig: RecurringConfig = {
+          ...updatedConfigs[configIndex], // 继承原类型
+          id: newConfigId,
+          startDate: targetDateStr,
+          endDate: undefined, // 新规则默认无结束，或者继承原结束？通常是无结束，除非原规则有结束
+          excludeDates: [], // 清空排除列表
+          // 更新模板
+          template: {
+            title: task.title,
+            startHour: task.startHour,
+            startMinute: task.startMinute,
+            duration: task.duration,
+            color: task.color,
+            location: task.location,
+            notes: task.notes,
+          }
+        };
+
+        updatedConfigs.push(newConfig);
+        await saveRecurringConfigs(updatedConfigs);
+      }
+
+      await loadAllData();
+      setShowModal(false);
+      setEditingTask(null);
+      return;
+    }
+
+    // 3. 普通任务保存 (或重复任务被当做单次任务编辑但未触发 action - 比如没改关键信息? 不，modal会强制选择)
     // 如果是编辑任务，且日期发生了改变
     if (editingTask && targetDateStr !== modalDateStr) {
       // 1. 从旧日期中删除
@@ -242,21 +314,68 @@ export default function App() {
   };
 
   // 删除任务
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string, action?: RecurringAction) => {
+    // 查找任务 (可能在 modalDateStr 中)
     const ds = modalDateStr;
     const current = weekDataMap[ds] || createEmptyDayData(ds);
-    const newTasks = current.tasks.filter((t) => t.id !== taskId);
-    const newData = { ...current, tasks: newTasks };
-    setWeekDataMap((prev) => ({ ...prev, [ds]: newData }));
-    scheduleSave(ds, newData);
+    const taskToDelete = current.tasks.find(t => t.id === taskId);
+
+    if (taskToDelete && taskToDelete.recurringId && action) {
+      const configs = await loadRecurringConfigs();
+      const configIndex = configs.findIndex(c => c.id === taskToDelete.recurringId);
+
+      if (configIndex !== -1) {
+        const updatedConfigs = [...configs];
+
+        if (action === 'single') {
+          // 仅删除此实例 -> 添加到排除列表
+          const excludeDates = updatedConfigs[configIndex].excludeDates || [];
+          updatedConfigs[configIndex] = {
+            ...updatedConfigs[configIndex],
+            excludeDates: [...excludeDates, ds]
+          };
+        } else if (action === 'future') {
+          // 删除此及未来 -> 结束规则
+          // 计算前一天
+          const d = new Date(ds);
+          d.setDate(d.getDate() - 1);
+          const prevDateStr = formatDateStr(d);
+
+          updatedConfigs[configIndex] = {
+            ...updatedConfigs[configIndex],
+            endDate: prevDateStr
+          };
+        }
+        await saveRecurringConfigs(updatedConfigs);
+        await loadAllData(); // 重新生成任务列表
+      }
+    } else {
+      // 普通单次任务删除
+      const newTasks = current.tasks.filter((t) => t.id !== taskId);
+      const newData = { ...current, tasks: newTasks };
+      setWeekDataMap((prev) => ({ ...prev, [ds]: newData }));
+      scheduleSave(ds, newData);
+    }
+
     setShowModal(false);
     setEditingTask(null);
   };
 
-  // 快速删除
+  // 快速删除 (右键或按钮删除)
   const handleQuickDelete = (dateStr: string, taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const current = weekDataMap[dateStr] || createEmptyDayData(dateStr);
+    const task = current.tasks.find(t => t.id === taskId);
+
+    if (task?.recurringId) {
+      // 变通：选中该任务并打开模态框，让用户在模态框里操作删除
+      setEditingTask(task);
+      setModalDefaults(null);
+      setModalDateStr(dateStr);
+      setShowModal(true);
+      return;
+    }
+
     const newTasks = current.tasks.filter((t) => t.id !== taskId);
     const newData = { ...current, tasks: newTasks };
     setWeekDataMap((prev) => ({ ...prev, [dateStr]: newData }));
@@ -526,7 +645,7 @@ export default function App() {
           currentDateStr={modalDateStr}
           weekDates={weekDateOptions}
           onSave={handleSaveTask}
-          onDelete={editingTask ? () => handleDeleteTask(editingTask.id) : undefined}
+          onDelete={editingTask ? (action) => handleDeleteTask(editingTask.id, action) : undefined}
           onClose={() => { setShowModal(false); setEditingTask(null); }}
         />
       )}

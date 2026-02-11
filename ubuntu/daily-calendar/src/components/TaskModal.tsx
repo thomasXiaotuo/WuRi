@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CalendarTask, TASK_COLORS, formatTime, generateId, RepeatType, RecurringConfig } from '../types';
 
+export type RecurringAction = 'single' | 'future';
+
 interface TaskModalProps {
   task: CalendarTask | null; // 要编辑的任务，如果是新建则为 null
   defaults: { startHour: number; startMinute: number; dateStr: string } | null; // 新建任务时的默认时间/日期
   currentDateStr: string; // 当然显示的日期
   weekDates: { dateStr: string; label: string }[]; // 当前周的可用日期列表（用于快速切换日期）
-  onSave: (task: CalendarTask, dateStr: string) => void; // 保存回调
-  onDelete?: () => void; // 删除回调
+  onSave: (task: CalendarTask, dateStr: string, action?: RecurringAction) => void; // 保存回调
+  onDelete?: (action?: RecurringAction) => void; // 删除回调
   onClose: () => void; // 关闭回调
 }
 
@@ -29,6 +31,10 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]);
   const [endDate, setEndDate] = useState('');
 
+  // 确认模式状态
+  const [confirmMode, setConfirmMode] = useState<'save' | 'delete' | null>(null);
+  const [pendingTask, setPendingTask] = useState<CalendarTask | null>(null);
+
   // 用于自动聚焦标题输入框
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -36,9 +42,13 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
     // 组件挂载时自动聚焦
     titleRef.current?.focus();
 
-    // 如果是编辑重复任务，初始化状态 (这里暂时未实现完全的编辑回显，如果是普通编辑，task.recurringConfig 为空)
-    // 如果需要支持编辑重复规则，需要从传入的 task.recurringConfig 读取
-  }, []);
+    // 如果是新建任务，根据 defaults 初始化日期和时间
+    if (!task && defaults) {
+      if (defaults.dateStr) setDateStr(defaults.dateStr);
+      if (defaults.startHour !== undefined) setStartHour(defaults.startHour);
+      if (defaults.startMinute !== undefined) setStartMinute(defaults.startMinute);
+    }
+  }, [task, defaults]);
 
   // 生成时间选项列表 (00:00 到 23:30)
   const timeOptions: { hour: number; minute: number; label: string }[] = [];
@@ -67,18 +77,27 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
     );
   };
 
+  // 处理删除点击
+  const handleDeleteClick = () => {
+    if (task?.recurringId) {
+      setConfirmMode('delete');
+    } else {
+      if (onDelete) onDelete();
+    }
+  };
+
   // 处理表单提交
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    // 计算任务结束时间，防止跨天（简化处理：限制在当天 24:00 前）
+    // 计算任务结束时间，防止跨天
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = startTotalMinutes + duration;
     const maxEnd = 24 * 60;
     const finalDuration = endTotalMinutes > maxEnd ? maxEnd - startTotalMinutes : duration;
 
-    // 如果时长变短后小于 30 分钟（例如 23:30 开始的任务），则不保存
+    // 如果时长变短后小于 30 分钟，则不保存
     if (finalDuration < 30) return;
 
     // 构建基本任务对象
@@ -91,10 +110,12 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
       color,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
+      recurringId: task?.recurringId, // 保持引用
+      recurringConfig: task?.recurringConfig // 保持引用
     };
 
-    // 如果设置了重复，构建 RecurringConfig
-    if (repeatType !== 'none') {
+    // 如果是新建重复任务
+    if (!task && repeatType !== 'none') {
       const config: RecurringConfig = {
         id: generateId(),
         type: repeatType,
@@ -113,8 +134,16 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
         }
       };
 
-      // 将配置附加到任务对象上，App.tsx 会识别并在保存时处理
       baseTask.recurringConfig = config;
+      onSave(baseTask, dateStr);
+      return;
+    }
+
+    // 如果是编辑现有的重复任务
+    if (task?.recurringId) {
+      setPendingTask(baseTask);
+      setConfirmMode('save');
+      return;
     }
 
     onSave(baseTask, dateStr);
@@ -129,6 +158,49 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
   };
+
+  // 如果处于确认模式，显示选择对话框
+  if (confirmMode) {
+    return (
+      <div className="modal-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
+        <div className="modal-content" style={{ maxWidth: '400px' }}>
+          <div className="modal-title">
+            {confirmMode === 'save' ? '修改重复日程' : '删除重复日程'}
+          </div>
+          <p style={{ margin: '20px 0', color: '#333' }}>
+            这是一个重复发生的日程，您希望如何应用更改？
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                if (confirmMode === 'save' && pendingTask) onSave(pendingTask, dateStr, 'single');
+                if (confirmMode === 'delete' && onDelete) onDelete('single');
+              }}
+            >
+              仅{confirmMode === 'save' ? '修改' : '删除'}此日程
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                if (confirmMode === 'save' && pendingTask) onSave(pendingTask, dateStr, 'future');
+                if (confirmMode === 'delete' && onDelete) onDelete('future');
+              }}
+            >
+              {confirmMode === 'save' ? '修改' : '删除'}此日程及之后所有
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setConfirmMode(null)}
+              style={{ marginTop: '10px' }}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
@@ -316,7 +388,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
           {/* 底部按钮区 */}
           <div className="modal-actions">
             {onDelete && (
-              <button type="button" className="btn btn-danger" onClick={onDelete}>删除</button>
+              <button type="button" className="btn btn-danger" onClick={handleDeleteClick}>删除</button>
             )}
             <div style={{ flex: 1 }} />
             <button type="button" className="btn btn-secondary" onClick={onClose}>取消</button>
