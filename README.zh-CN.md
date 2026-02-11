@@ -1,5 +1,7 @@
 # WuRi Calendar (吾日日历) — 每日时间管理与自我自省
- 
+
+[English](README.md) | [中文](README.zh-CN.md)
+
 “吾日三省吾身”。
 **WuRi (吾日)** 取自这句经典名言，意为“我每天...”。这是一款专注于当下、记录成长、融合了古老智慧的现代 Windows 桌面日历应用。
 它不仅仅是一个时间管理工具，更是一个每日反思的伴侣。采用经典的三栏布局，帮助你规划一天的安排，同时通过“三件好事”和“三项改进”来记录生活点滴与自我成长。
@@ -38,15 +40,18 @@
 
 ### 方式一：Windows 安装包（推荐）
 
-下载 `Daily Calendar Setup 1.0.0.exe`，双击运行安装向导即可。
+下载 `WuRi Calendar (吾日日历) Setup 1.0.0.exe`，双击运行安装向导即可。
 
 ### 方式二：Windows 便携版
 
-下载 `Daily Calendar 1.0.0.exe`，双击即可运行，无需安装。
+下载 `WuRi Calendar (吾日日历) 1.0.0.exe`，双击即可运行，无需安装。
 
 ### 方式三：从源码运行
 
 ```bash
+# 进入项目目录
+cd ubuntu/daily-calendar
+
 # 安装依赖
 pnpm install
 
