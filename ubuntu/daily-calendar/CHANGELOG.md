@@ -13,10 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features / 新功能
 
-- **New Feature Title**
-  **新功能标题**
-  - Description of the new feature in English.
-    新功能的中文描述。
+- **Input Limits**
+  **输入限制**
+  - Implemented a hybrid input length limit for "Good Things" and "Improvements": 1 Chinese character or 1 English word counts as 1 unit, with a maximum of 75 units.
+    实现了“三件好事”和“三项改进”的混合输入长度限制：1个中文字符或1个英文单词计为1个单位，最大限制为75个单位。
 
 ### Changes / 变更
 
