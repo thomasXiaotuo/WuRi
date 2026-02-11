@@ -125,17 +125,29 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
       {/* 年份选择器 */}
       {pickerMode === 'year' && (
         <div className="picker-popover picker-year">
-          <div className="picker-title">选择年份</div>
+          <div className="picker-nav">
+            {/* 切换到上个十年 */}
+            <button className="picker-nav-btn" onClick={() => setViewYear(viewYear - 10)}>‹</button>
+            <span className="picker-nav-title">
+              {Math.floor(viewYear / 10) * 10} - {Math.floor(viewYear / 10) * 10 + 9}
+            </span>
+            {/* 切换到下个十年 */}
+            <button className="picker-nav-btn" onClick={() => setViewYear(viewYear + 10)}>›</button>
+          </div>
           <div className="picker-year-grid">
-            {years.map((y) => (
-              <div
-                key={y}
-                className={`picker-year-item ${y === selectedDate.getFullYear() ? 'selected' : ''} ${y === currentYear ? 'current' : ''}`}
-                onClick={() => selectYear(y)}
-              >
-                {y}
-              </div>
-            ))}
+            {Array.from({ length: 12 }).map((_, i) => {
+              const startDecade = Math.floor(viewYear / 10) * 10;
+              const y = startDecade - 1 + i; // 显示前一年到后两年的范围，凑齐12个
+              return (
+                <div
+                  key={y}
+                  className={`picker-year-item ${y === selectedDate.getFullYear() ? 'selected' : ''} ${y === new Date().getFullYear() ? 'current' : ''} ${y < startDecade || y > startDecade + 9 ? 'muted' : ''}`}
+                  onClick={() => selectYear(y)}
+                >
+                  {y}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

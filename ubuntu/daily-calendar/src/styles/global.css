@@ -278,6 +278,7 @@ body {
 .picker-year-item:hover { background: var(--bg-secondary); }
 .picker-year-item.current { color: var(--accent-blue); font-weight: 700; }
 .picker-year-item.selected { background: var(--accent-blue); color: white; font-weight: 700; }
+.picker-year-item.muted { color: var(--text-tertiary); }
 
 /* Month grid */
 .picker-month-grid {
