@@ -20,6 +20,17 @@ import { loadDayData, saveDayData, loadRecurringConfigs, saveRecurringConfigs } 
 import { AVAILABLE_TIMEZONES, getLocalTimezone, getDateInZone } from './utils/timezone';
 import TaskModal, { RecurringAction } from './components/TaskModal';
 import DatePicker from './components/DatePicker';
+import { useLanguage } from './contexts/LanguageContext';
+import { Translation } from './i18n/locales';
+
+// SVG 图标组件 define
+const GlobeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="2" y1="12" x2="22" y2="12"></line>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+  </svg>
+);
 
 // SVG 图标组件 define
 const ChevronLeft = () => (
@@ -55,9 +66,18 @@ const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周�
 
 // 主应用组件
 export default function App() {
+  const { language, setLanguage, t } = useLanguage();
+
   // --- 状态管理 ---
   const [selectedDate, setSelectedDate] = useState(new Date()); // 当前选中的日期
   const [viewTimezone, setViewTimezone] = useState(getLocalTimezone()); // 当前查看的时区
+
+  // 动态更新文档标题和语言属性
+  useEffect(() => {
+    document.title = t.app.title;
+    document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  }, [language, t]);
+
   const [weekDays, setWeekDays] = useState<Date[]>([]); // 当前周的日期列表
   const [weekDataMap, setWeekDataMap] = useState<Record<string, DayData>>({}); // 缓存一周的数据
   const [leftPanelOpen, setLeftPanelOpen] = useState(true); // 左侧面板开关状态
@@ -478,7 +498,9 @@ export default function App() {
   // 为模态框准备的周日期选项
   const weekDateOptions = weekDays.map((d) => ({
     dateStr: formatDateStr(d),
-    label: `${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAY_LABELS[weekDays.indexOf(d)]}`,
+    label: language === 'zh'
+      ? `${d.getMonth() + 1}月${d.getDate()}日 ${t.datePicker.weekdays[weekDays.indexOf(d)]}`
+      : `${t.datePicker.months[d.getMonth()]} ${d.getDate()} ${t.datePicker.weekdays[weekDays.indexOf(d)]}`,
   }));
 
   // 渲染左侧时间标签列
@@ -553,37 +575,47 @@ export default function App() {
     );
   };
 
-  const formatShortDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+  const formatShortDate = (date: Date) => {
+    if (language === 'zh') return `${date.getMonth() + 1}月${date.getDate()}日`;
+    return `${t.datePicker.months[date.getMonth()]} ${date.getDate()}`;
+  };
 
   return (
     <div className="app-container">
       {/* 顶部标题栏 */}
       <header className="app-header">
         <div className="app-header-left">
-          <button className={`header-btn sidebar-toggle ${leftPanelOpen ? 'active' : ''}`} onClick={() => setLeftPanelOpen(!leftPanelOpen)} title={leftPanelOpen ? '隐藏三件好事' : '展开三件好事'}>
+          <button className={`header-btn sidebar-toggle ${leftPanelOpen ? 'active' : ''}`} onClick={() => setLeftPanelOpen(!leftPanelOpen)} title={t.app.toggleLeftPanel}>
             <SidebarIcon />
           </button>
           <DatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
         </div>
         <div className="app-header-center">
-          <button className="header-btn nav-btn" onClick={goPrevWeek} title="上一周"><ChevronLeft /></button>
-          <button className="header-btn today-btn" onClick={goToday}>今天</button>
-          <button className="header-btn nav-btn" onClick={goNextWeek} title="下一周"><ChevronRight /></button>
-          <button className="header-btn add-btn" onClick={handleAddTask} title="新建任务"><PlusIcon /></button>
+          <button className="header-btn nav-btn" onClick={goPrevWeek} title={t.app.prevWeek}><ChevronLeft /></button>
+          <button className="header-btn today-btn" onClick={goToday}>{t.app.today}</button>
+          <button className="header-btn nav-btn" onClick={goNextWeek} title={t.app.nextWeek}><ChevronRight /></button>
+          <button className="header-btn add-btn" onClick={handleAddTask} title={t.app.newTask}><PlusIcon /></button>
         </div>
         <div className="app-header-right">
           <select
             className="timezone-select"
             value={viewTimezone}
             onChange={(e) => setViewTimezone(e.target.value)}
-            title="切换查看时区"
-            style={{ marginRight: '10px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}
+            title={t.app.timezoneSelector}
           >
             {AVAILABLE_TIMEZONES.map(tz => (
-              <option key={tz.value} value={tz.value}>{tz.label}</option>
+              <option key={tz.value} value={tz.value}>{t.app.timezones[tz.value]}</option>
             ))}
           </select>
-          <button className={`header-btn sidebar-toggle ${rightPanelOpen ? 'active' : ''}`} onClick={() => setRightPanelOpen(!rightPanelOpen)} title={rightPanelOpen ? '隐藏改进记录' : '展开改进记录'}>
+          <button
+            className="header-btn"
+            onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
+            title={language === 'zh' ? 'Switch to English' : '切换到中文'}
+            style={{ marginRight: '10px' }}
+          >
+            <GlobeIcon />
+          </button>
+          <button className={`header-btn sidebar-toggle ${rightPanelOpen ? 'active' : ''}`} onClick={() => setRightPanelOpen(!rightPanelOpen)} title={t.app.toggleRightPanel}>
             <SidebarRightIcon />
           </button>
         </div>
@@ -593,7 +625,7 @@ export default function App() {
         {/* 左侧面板：三件好事 */}
         <div className={`sidebar-panel left ${leftPanelOpen ? '' : 'collapsed'}`}>
           <div className="sidebar-header">
-            <div className="sidebar-title">✨ 今日三件好事</div>
+            <div className="sidebar-title">{t.app.goodThingsTitle}</div>
             <div className="sidebar-date-info">{formatShortDate(selectedDate)}</div>
           </div>
           <div className="sidebar-content">
@@ -601,9 +633,9 @@ export default function App() {
               <div key={field} className="good-thing-item">
                 <div className="good-thing-label">
                   <span className="number">{idx + 1}</span>
-                  第{['一', '二', '三'][idx]}件好事
+                  {t.app.goodThingLabel(idx)}
                 </div>
-                <textarea className="good-thing-textarea" placeholder={`记录今天的第${idx + 1}件好事...`} value={selectedDayData.goodThings[field]} onChange={(e) => updateGoodThing(field, e.target.value)} />
+                <textarea className="good-thing-textarea" placeholder={t.app.goodThingPlaceholder(idx)} value={selectedDayData.goodThings[field]} onChange={(e) => updateGoodThing(field, e.target.value)} />
               </div>
             ))}
           </div>
@@ -618,7 +650,7 @@ export default function App() {
               const isSelected = isSameDay(day, selectedDate);
               return (
                 <div key={i} className={`wk-header-day ${isTodayCol ? 'is-today' : ''} ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedDate(new Date(day))}>
-                  <span className="wk-header-weekday">{WEEKDAY_NAMES[i]}</span>
+                  <span className="wk-header-weekday">{t.datePicker.weekdays[i]}</span>
                   <span className={`wk-header-date ${isTodayCol ? 'today-circle' : ''}`}>{day.getDate()}</span>
                 </div>
               );
@@ -641,7 +673,7 @@ export default function App() {
         {/* 右侧面板：改进记录 */}
         <div className={`sidebar-panel right ${rightPanelOpen ? '' : 'collapsed'}`}>
           <div className="sidebar-header">
-            <div className="sidebar-title">📝 今日三项改进</div>
+            <div className="sidebar-title">{t.app.improvementsTitle}</div>
             <div className="sidebar-date-info">{formatShortDate(selectedDate)}</div>
           </div>
           <div className="sidebar-content">
@@ -649,9 +681,9 @@ export default function App() {
               <div key={field} className="improvement-item">
                 <div className="improvement-label">
                   <span className="number">{idx + 1}</span>
-                  第{['一', '二', '三'][idx]}项改进
+                  {t.app.improvementLabel(idx)}
                 </div>
-                <textarea className="improvement-textarea" placeholder={`记录今天的第${idx + 1}项改进...`} value={selectedDayData.improvements[field]} onChange={(e) => updateImprovement(field, e.target.value)} />
+                <textarea className="improvement-textarea" placeholder={t.app.improvementPlaceholder(idx)} value={selectedDayData.improvements[field]} onChange={(e) => updateImprovement(field, e.target.value)} />
               </div>
             ))}
           </div>

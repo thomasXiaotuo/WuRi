@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CalendarTask, TASK_COLORS, formatTime, generateId, RepeatType, RecurringConfig } from '../types';
 import { AVAILABLE_TIMEZONES, getLocalTimezone } from '../utils/timezone';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export type RecurringAction = 'single' | 'future';
 
@@ -16,6 +17,7 @@ interface TaskModalProps {
 
 // 任务创建/编辑模态框组件
 export default function TaskModal({ task, defaults, currentDateStr, weekDates, onSave, onDelete, onClose }: TaskModalProps) {
+  const { t } = useLanguage();
   // 表单状态管理
   const [title, setTitle] = useState(task?.title || '');
   const [dateStr, setDateStr] = useState(currentDateStr);
@@ -65,10 +67,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   for (let d = 30; d <= 480; d += 30) {
     const hours = Math.floor(d / 60);
     const mins = d % 60;
-    let label = '';
-    if (hours > 0 && mins > 0) label = `${hours}小时${mins}分钟`;
-    else if (hours > 0) label = `${hours}小时`;
-    else label = `${mins}分钟`;
+    const label = t.modal.durationLabel(hours, mins);
     durationOptions.push({ value: d, label });
   }
 
@@ -168,10 +167,10 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
       <div className="modal-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
         <div className="modal-content" style={{ maxWidth: '400px' }}>
           <div className="modal-title">
-            {confirmMode === 'save' ? '修改重复日程' : '删除重复日程'}
+            {t.modal.confirmRecurringTitle(confirmMode)}
           </div>
           <p style={{ margin: '20px 0', color: '#333' }}>
-            这是一个重复发生的日程，您希望如何应用更改？
+            {t.modal.confirmRecurringBody}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button
@@ -181,7 +180,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
                 if (confirmMode === 'delete' && onDelete) onDelete('single');
               }}
             >
-              仅{confirmMode === 'save' ? '修改' : '删除'}此日程
+              {t.modal.actionSingle(confirmMode)}
             </button>
             <button
               className="btn btn-primary"
@@ -190,14 +189,14 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
                 if (confirmMode === 'delete' && onDelete) onDelete('future');
               }}
             >
-              {confirmMode === 'save' ? '修改' : '删除'}此日程及之后所有
+              {t.modal.actionFuture(confirmMode)}
             </button>
             <button
               className="btn btn-secondary"
               onClick={() => setConfirmMode(null)}
               style={{ marginTop: '10px' }}
             >
-              取消
+              {t.modal.cancel}
             </button>
           </div>
         </div>
@@ -208,25 +207,25 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   return (
     <div className="modal-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
       <div className="modal-content">
-        <div className="modal-title">{task ? '编辑任务' : '新建任务'}</div>
+        <div className="modal-title">{task ? t.modal.editTask : t.modal.newTask}</div>
         <form onSubmit={handleSubmit}>
           {/* 任务名称 */}
           <div className="modal-field">
-            <label className="modal-label">任务名称</label>
+            <label className="modal-label">{t.modal.taskName}</label>
             <input
               ref={titleRef}
               className="modal-input"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="输入任务名称..."
+              placeholder={t.modal.placeholderTitle}
               required
             />
           </div>
 
           {/* 日期选择（仅限本周） */}
           <div className="modal-field">
-            <label className="modal-label">日期</label>
+            <label className="modal-label">{t.modal.date}</label>
             <select
               className="modal-select"
               value={dateStr}
@@ -242,7 +241,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
           {/* 开始时间和时长选择 */}
           <div className="modal-time-row">
             <div className="modal-field">
-              <label className="modal-label">开始时间</label>
+              <label className="modal-label">{t.modal.startTime}</label>
               <select
                 className="modal-select"
                 value={`${startHour}:${startMinute}`}
@@ -260,7 +259,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
               </select>
             </div>
             <div className="modal-field">
-              <label className="modal-label">时长</label>
+              <label className="modal-label">{t.modal.duration}</label>
               <select
                 className="modal-select"
                 value={duration}
@@ -277,24 +276,24 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
           {!task && (
             <div className="modal-field">
               <label className="modal-label">
-                <span className="modal-label-icon">🔁</span> 重复
+                <span className="modal-label-icon">🔁</span> {t.modal.repeat}
               </label>
               <select
                 className="modal-select"
                 value={repeatType}
                 onChange={(e) => setRepeatType(e.target.value as RepeatType)}
               >
-                <option value="none">不重复</option>
-                <option value="daily">每天</option>
-                <option value="weekly">每周</option>
-                <option value="monthly">每月</option>
-                <option value="yearly">每年</option>
-                <option value="custom">自定义 (每 N 天)</option>
+                <option value="none">{t.modal.repeatTypes.none}</option>
+                <option value="daily">{t.modal.repeatTypes.daily}</option>
+                <option value="weekly">{t.modal.repeatTypes.weekly}</option>
+                <option value="monthly">{t.modal.repeatTypes.monthly}</option>
+                <option value="yearly">{t.modal.repeatTypes.yearly}</option>
+                <option value="custom">{t.modal.repeatTypes.custom}</option>
               </select>
 
               {/* 时区选择 */}
               <div style={{ marginTop: '8px' }}>
-                <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>时区</label>
+                <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.modal.timezone}</label>
                 <select
                   className="modal-select"
                   value={timezone}
@@ -302,7 +301,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
                   style={{ fontSize: '12px', padding: '4px' }}
                 >
                   {AVAILABLE_TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                    <option key={tz.value} value={tz.value}>{t.app.timezones[tz.value]}</option>
                   ))}
                 </select>
               </div>
@@ -310,7 +309,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
               {/* 每周设置 */}
               {repeatType === 'weekly' && (
                 <div className="week-days-selector" style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
-                  {['日', '一', '二', '三', '四', '五', '六'].map((day, idx) => (
+                  {t.datePicker.weekdaysShort.map((day, idx) => (
                     <button
                       key={idx}
                       type="button"
@@ -332,23 +331,22 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
               {/* 自定义设置 */}
               {repeatType === 'custom' && (
                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '13px' }}>每</span>
+                  <span style={{ fontSize: '13px' }}>{t.modal.customInterval(customInterval)}</span>
                   <input
                     type="number"
                     min="1"
                     className="modal-input"
-                    style={{ width: '60px' }}
+                    style={{ width: '60px', marginLeft: '10px' }}
                     value={customInterval}
                     onChange={(e) => setCustomInterval(Number(e.target.value))}
                   />
-                  <span style={{ fontSize: '13px' }}>天重复一次</span>
                 </div>
               )}
 
               {/* 结束日期 */}
               {repeatType !== 'none' && (
                 <div style={{ marginTop: '8px' }}>
-                  <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>结束日期 (可选)</label>
+                  <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>{t.modal.endDate}</label>
                   <input
                     type="date"
                     className="modal-input"
@@ -363,34 +361,34 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
           {/* 地点输入 */}
           <div className="modal-field">
             <label className="modal-label">
-              <span className="modal-label-icon">📍</span> 地点
+              <span className="modal-label-icon">📍</span> {t.modal.location}
             </label>
             <input
               className="modal-input"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="输入地点（可选）..."
+              placeholder={t.modal.placeholderLocation}
             />
           </div>
 
           {/* 备注输入 */}
           <div className="modal-field">
             <label className="modal-label">
-              <span className="modal-label-icon">📝</span> 备注 / 提醒
+              <span className="modal-label-icon">📝</span> {t.modal.notes}
             </label>
             <textarea
               className="modal-textarea"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="写下需要提醒自己的事项..."
+              placeholder={t.modal.placeholderNotes}
               rows={3}
             />
           </div>
 
           {/* 颜色选择器 */}
           <div className="modal-field">
-            <label className="modal-label">颜色</label>
+            <label className="modal-label">{t.modal.color}</label>
             <div className="color-picker">
               {TASK_COLORS.map((c) => (
                 <div
@@ -406,11 +404,11 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
           {/* 底部按钮区 */}
           <div className="modal-actions">
             {onDelete && (
-              <button type="button" className="btn btn-danger" onClick={handleDeleteClick}>删除</button>
+              <button type="button" className="btn btn-danger" onClick={handleDeleteClick}>{t.modal.delete}</button>
             )}
             <div style={{ flex: 1 }} />
-            <button type="button" className="btn btn-secondary" onClick={onClose}>取消</button>
-            <button type="submit" className="btn btn-primary">{task ? '保存' : '创建'}</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>{t.modal.cancel}</button>
+            <button type="submit" className="btn btn-primary">{task ? t.modal.save : t.modal.create}</button>
           </div>
         </form>
       </div>

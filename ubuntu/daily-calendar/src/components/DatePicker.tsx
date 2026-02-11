@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface DatePickerProps {
   selectedDate: Date; // 当前选中的日期
@@ -8,11 +9,9 @@ interface DatePickerProps {
 // 选择器模式：无、选择年份、选择月份、选择日期
 type PickerMode = 'none' | 'year' | 'month' | 'day';
 
-const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-const WEEKDAY_HEADERS = ['一', '二', '三', '四', '五', '六', '日'];
-
 // 自定义日期选择器组件
 export default function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
+  const { t, language } = useLanguage();
   const [pickerMode, setPickerMode] = useState<PickerMode>('none');
   // 视图状态：当前正在查看的年份和月份（不一定等于选中的日期）
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
@@ -106,23 +105,21 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
   const years: number[] = [];
   for (let y = yearStart; y <= yearEnd; y++) years.push(y);
 
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
   return (
     <div className="date-picker-wrapper" ref={popoverRef}>
       {/* 顶部显示区，可点击切换不同选择模式 */}
       <div className="date-picker-display">
         <span className="date-picker-segment year" onClick={handleYearClick}>
-          {selectedDate.getFullYear()}年
+          {selectedDate.getFullYear()}{language === 'zh' ? '年' : ''}
         </span>
         <span className="date-picker-segment month" onClick={handleMonthClick}>
-          {MONTHS[selectedDate.getMonth()]}
+          {t.datePicker.months[selectedDate.getMonth()]}
         </span>
         <span className="date-picker-segment day" onClick={handleDayClick}>
-          {selectedDate.getDate()}日
+          {selectedDate.getDate()}{language === 'zh' ? '日' : ''}
         </span>
         <span className="date-picker-weekday">
-          {weekdays[selectedDate.getDay()]}
+          {t.datePicker.weekdays[selectedDate.getDay()]}
         </span>
       </div>
 
@@ -161,11 +158,11 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
         <div className="picker-popover picker-month">
           <div className="picker-nav">
             <button className="picker-nav-btn" onClick={() => setViewYear(viewYear - 1)}>‹</button>
-            <span className="picker-nav-title" onClick={() => setPickerMode('year')}>{viewYear}年</span>
+            <span className="picker-nav-title" onClick={() => setPickerMode('year')}>{viewYear}{language === 'zh' ? '年' : ''}</span>
             <button className="picker-nav-btn" onClick={() => setViewYear(viewYear + 1)}>›</button>
           </div>
           <div className="picker-month-grid">
-            {MONTHS.map((m, i) => (
+            {t.datePicker.months.map((m, i) => (
               <div
                 key={i}
                 className={`picker-month-item ${i === selectedDate.getMonth() && viewYear === selectedDate.getFullYear() ? 'selected' : ''} ${i === today.getMonth() && viewYear === today.getFullYear() ? 'current' : ''}`}
@@ -188,7 +185,7 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
               else setViewMonth(viewMonth - 1);
             }}>‹</button>
             <span className="picker-nav-title" onClick={() => setPickerMode('month')}>
-              {viewYear}年 {MONTHS[viewMonth]}
+              {viewYear}{language === 'zh' ? '年' : ' '} {t.datePicker.months[viewMonth]}
             </span>
             <button className="picker-nav-btn" onClick={() => {
               // 切换到下个月
@@ -197,7 +194,7 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
             }}>›</button>
           </div>
           <div className="picker-day-header">
-            {WEEKDAY_HEADERS.map((w) => (
+            {t.datePicker.weekdaysShort.map((w) => (
               <div key={w} className="picker-day-header-cell">{w}</div>
             ))}
           </div>

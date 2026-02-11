@@ -39,13 +39,14 @@ export function getDateInZone(date: Date, timezone: string): { year: number, mon
 }
 
 // 常用时区列表
+// 常用时区列表
 export const AVAILABLE_TIMEZONES = [
-    { value: 'Asia/Shanghai', label: '🇨🇳 上海 (CST)' },
-    { value: 'Asia/Tokyo', label: '🇯🇵 东京 (JST)' },
-    { value: 'America/New_York', label: '🇺🇸 纽约 (EST/EDT)' },
-    { value: 'America/Los_Angeles', label: '🇺🇸 洛杉矶 (PST/PDT)' },
-    { value: 'Europe/London', label: '🇬🇧 伦敦 (GMT/BST)' },
-    { value: 'Europe/Paris', label: '🇫🇷 巴黎 (CET/CEST)' },
-    { value: 'Australia/Sydney', label: '🇦🇺 悉尼 (AEST/AEDT)' },
-    { value: 'UTC', label: '🌍 UTC' },
+    { value: 'Asia/Shanghai' },
+    { value: 'Asia/Tokyo' },
+    { value: 'America/New_York' },
+    { value: 'America/Los_Angeles' },
+    { value: 'Europe/London' },
+    { value: 'Europe/Paris' },
+    { value: 'Australia/Sydney' },
+    { value: 'UTC' },
 ];
