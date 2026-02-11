@@ -65,24 +65,26 @@ const PlusIcon = () => (
 const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
 const getHybridLength = (text: string): number => {
-  let len = 0;
-  let cleanText = '';
-  // Match CJK Unified Ideographs, CJK Symbols/Punctuation, Fullwidth forms
-  const cjkRegex = /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/;
+  let count = 0;
+  // Match contiguous alphanumeric (English words/numbers) 
+  // OR match individual CJK characters/punctuations 
+  // OR match individual emojis/symbols (non-word, non-space)
 
-  for (const char of text) {
-    if (cjkRegex.test(char)) {
-      len += 1;
-      cleanText += ' ';
-    } else {
-      cleanText += char;
-    }
-  }
+  // Strategy:
+  // 1. Split by whitespace to get "tokens".
+  // 2. For each token, further split into:
+  //    - CJK/Emoji/Symbol (count each as 1)
+  //    - English/Number sequence (count sequence as 1)
 
-  const words = cleanText.trim().split(/\s+/).filter(w => w.length > 0);
-  len += words.length;
+  // Better approach: Regex global match
+  // 1. CJK or CJK Punctuation: [\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]
+  // 2. Emoji/Symbol (non-word, non-space, non-CJK): [^\w\s\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]
+  // 3. Word (alphanumeric sequence): \w+
 
-  return len;
+  const regex = /([\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])|([^\w\s\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef])|(\w+)/g;
+
+  const matches = text.match(regex);
+  return matches ? matches.length : 0;
 };
 
 // 主应用组件
@@ -671,10 +673,12 @@ export default function App() {
                       const newLen = getHybridLength(newVal);
                       const oldLen = getHybridLength(text); // Re-calculate old len to be safe
 
-                      // Strict limit: if new length exceeds limit AND we are adding content (newLen >= oldLen)
-                      // exception: if we are at limit (75), and type a char, newLen becomes 76. Block.
-                      // what if we delete? newLen < oldLen. Allow.
-                      if (newLen > limit && newLen >= oldLen) {
+                      // Block if new limit exceeds max
+                      if (newLen > limit) {
+                        return;
+                      }
+                      // Block even if limit is same but string length increased (e.g. spaces) when at/over limit
+                      if (oldLen >= limit && newVal.length > text.length) {
                         return;
                       }
                       updateGoodThing(field, newVal);
@@ -747,7 +751,12 @@ export default function App() {
                       const newLen = getHybridLength(newVal);
                       const oldLen = getHybridLength(text);
 
-                      if (newLen > limit && newLen >= oldLen) {
+                      // Block if new limit exceeds max
+                      if (newLen > limit) {
+                        return;
+                      }
+                      // Block even if limit is same but string length increased (e.g. spaces) when at/over limit
+                      if (oldLen >= limit && newVal.length > text.length) {
                         return;
                       }
                       updateImprovement(field, newVal);
