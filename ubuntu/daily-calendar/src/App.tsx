@@ -64,6 +64,27 @@ const PlusIcon = () => (
 
 const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
+const getHybridLength = (text: string): number => {
+  let len = 0;
+  let cleanText = '';
+  // Match CJK Unified Ideographs, CJK Symbols/Punctuation, Fullwidth forms
+  const cjkRegex = /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/;
+
+  for (const char of text) {
+    if (cjkRegex.test(char)) {
+      len += 1;
+      cleanText += ' ';
+    } else {
+      cleanText += char;
+    }
+  }
+
+  const words = cleanText.trim().split(/\s+/).filter(w => w.length > 0);
+  len += words.length;
+
+  return len;
+};
+
 // 主应用组件
 export default function App() {
   const { language, setLanguage, t } = useLanguage();
@@ -629,15 +650,43 @@ export default function App() {
             <div className="sidebar-date-info">{formatShortDate(selectedDate)}</div>
           </div>
           <div className="sidebar-content">
-            {(['thing1', 'thing2', 'thing3'] as const).map((field, idx) => (
-              <div key={field} className="good-thing-item">
-                <div className="good-thing-label">
-                  <span className="number">{idx + 1}</span>
-                  {t.app.goodThingLabel(idx)}
+            {(['thing1', 'thing2', 'thing3'] as const).map((field, idx) => {
+              const text = selectedDayData.goodThings[field];
+              const limit = 75;
+              const currentLength = getHybridLength(text);
+              const isOverLimit = currentLength >= limit; // Show warning when at or over limit
+
+              return (
+                <div key={field} className="good-thing-item">
+                  <div className="good-thing-label">
+                    <span className="number">{idx + 1}</span>
+                    {t.app.goodThingLabel(idx)}
+                  </div>
+                  <textarea
+                    className="good-thing-textarea"
+                    placeholder={t.app.goodThingPlaceholder(idx)}
+                    value={text}
+                    onChange={(e) => {
+                      const newVal = e.target.value;
+                      const newLen = getHybridLength(newVal);
+                      const oldLen = getHybridLength(text); // Re-calculate old len to be safe
+
+                      // Strict limit: if new length exceeds limit AND we are adding content (newLen >= oldLen)
+                      // exception: if we are at limit (75), and type a char, newLen becomes 76. Block.
+                      // what if we delete? newLen < oldLen. Allow.
+                      if (newLen > limit && newLen >= oldLen) {
+                        return;
+                      }
+                      updateGoodThing(field, newVal);
+                    }}
+                  />
+                  <div className={`input-counter ${isOverLimit ? 'limit-reached' : ''}`} style={{ fontSize: '11px', textAlign: 'right', color: isOverLimit ? 'red' : '#999', marginTop: '2px' }}>
+                    {currentLength} / {limit}
+                    {isOverLimit && <span style={{ marginLeft: '5px' }}>({language === 'zh' ? '已达上限' : 'Limit reached'})</span>}
+                  </div>
                 </div>
-                <textarea className="good-thing-textarea" placeholder={t.app.goodThingPlaceholder(idx)} value={selectedDayData.goodThings[field]} onChange={(e) => updateGoodThing(field, e.target.value)} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -677,15 +726,40 @@ export default function App() {
             <div className="sidebar-date-info">{formatShortDate(selectedDate)}</div>
           </div>
           <div className="sidebar-content">
-            {(['item1', 'item2', 'item3'] as const).map((field, idx) => (
-              <div key={field} className="improvement-item">
-                <div className="improvement-label">
-                  <span className="number">{idx + 1}</span>
-                  {t.app.improvementLabel(idx)}
+            {(['item1', 'item2', 'item3'] as const).map((field, idx) => {
+              const text = selectedDayData.improvements[field];
+              const limit = 75;
+              const currentLength = getHybridLength(text);
+              const isOverLimit = currentLength >= limit;
+
+              return (
+                <div key={field} className="improvement-item">
+                  <div className="improvement-label">
+                    <span className="number">{idx + 1}</span>
+                    {t.app.improvementLabel(idx)}
+                  </div>
+                  <textarea
+                    className="improvement-textarea"
+                    placeholder={t.app.improvementPlaceholder(idx)}
+                    value={text}
+                    onChange={(e) => {
+                      const newVal = e.target.value;
+                      const newLen = getHybridLength(newVal);
+                      const oldLen = getHybridLength(text);
+
+                      if (newLen > limit && newLen >= oldLen) {
+                        return;
+                      }
+                      updateImprovement(field, newVal);
+                    }}
+                  />
+                  <div className={`input-counter ${isOverLimit ? 'limit-reached' : ''}`} style={{ fontSize: '11px', textAlign: 'right', color: isOverLimit ? 'red' : '#999', marginTop: '2px' }}>
+                    {currentLength} / {limit}
+                    {isOverLimit && <span style={{ marginLeft: '5px' }}>({language === 'zh' ? '已达上限' : 'Limit reached'})</span>}
+                  </div>
                 </div>
-                <textarea className="improvement-textarea" placeholder={t.app.improvementPlaceholder(idx)} value={selectedDayData.improvements[field]} onChange={(e) => updateImprovement(field, e.target.value)} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
