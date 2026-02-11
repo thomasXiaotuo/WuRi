@@ -12,6 +12,7 @@ export interface RecurringConfig {
   startDate: string;   // 开始日期 (YYYY-MM-DD), 用于计算间隔和确定月/日的基准
   endDate?: string;    // 结束日期 (YYYY-MM-DD, 可选)
   excludeDates?: string[]; // 排除的日期 (YYYY-MM-DD, 用于删除单次实例)
+  timezone?: string; // 重复任务的时区 (e.g. 'Asia/Shanghai')
   template: Omit<CalendarTask, 'id' | 'recurringId' | 'recurringConfig'>; // 任务模板数据
 }
 

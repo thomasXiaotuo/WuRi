@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CalendarTask, TASK_COLORS, formatTime, generateId, RepeatType, RecurringConfig } from '../types';
+import { AVAILABLE_TIMEZONES, getLocalTimezone } from '../utils/timezone';
 
 export type RecurringAction = 'single' | 'future';
 
@@ -30,6 +31,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   const [customInterval, setCustomInterval] = useState(1);
   const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]);
   const [endDate, setEndDate] = useState('');
+  const [timezone, setTimezone] = useState(getLocalTimezone());
 
   // 确认模式状态
   const [confirmMode, setConfirmMode] = useState<'save' | 'delete' | null>(null);
@@ -123,6 +125,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
         endDate: endDate || undefined,
         weekDays: repeatType === 'weekly' ? selectedWeekDays : undefined,
         interval: repeatType === 'custom' ? customInterval : undefined,
+        timezone: timezone, // 保存时区设置
         template: {
           title: baseTask.title,
           startHour: baseTask.startHour,
@@ -288,6 +291,21 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
                 <option value="yearly">每年</option>
                 <option value="custom">自定义 (每 N 天)</option>
               </select>
+
+              {/* 时区选择 */}
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>时区</label>
+                <select
+                  className="modal-select"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  style={{ fontSize: '12px', padding: '4px' }}
+                >
+                  {AVAILABLE_TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
 
               {/* 每周设置 */}
               {repeatType === 'weekly' && (

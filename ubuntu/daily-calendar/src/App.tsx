@@ -17,6 +17,7 @@ import {
   RecurringConfig,
 } from './types';
 import { loadDayData, saveDayData, loadRecurringConfigs, saveRecurringConfigs } from './utils/storage';
+import { AVAILABLE_TIMEZONES, getLocalTimezone, getDateInZone } from './utils/timezone';
 import TaskModal, { RecurringAction } from './components/TaskModal';
 import DatePicker from './components/DatePicker';
 
@@ -56,6 +57,7 @@ const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周�
 export default function App() {
   // --- 状态管理 ---
   const [selectedDate, setSelectedDate] = useState(new Date()); // 当前选中的日期
+  const [viewTimezone, setViewTimezone] = useState(getLocalTimezone()); // 当前查看的时区
   const [weekDays, setWeekDays] = useState<Date[]>([]); // 当前周的日期列表
   const [weekDataMap, setWeekDataMap] = useState<Record<string, DayData>>({}); // 缓存一周的数据
   const [leftPanelOpen, setLeftPanelOpen] = useState(true); // 左侧面板开关状态
@@ -99,30 +101,38 @@ export default function App() {
     const map: Record<string, DayData> = {};
     for (const day of weekDays) {
       const ds = formatDateStr(day);
-      map[ds] = await loadDayData(ds);
+      map[ds] = await loadDayData(ds, viewTimezone);
     }
     setWeekDataMap(map);
-  }, [weekDays]);
+  }, [weekDays, viewTimezone]);
 
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
 
-  // 定时更新当前时间（每 30 秒）
+  // 定时更新当前时间（每 30 秒），根据当前时区显示
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+    const updateTime = () => {
+      const parts = getDateInZone(new Date(), viewTimezone);
+      // 构造当前时区的"视觉时间"对象
+      setCurrentTime(new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute));
+    };
+
+    updateTime(); // 立即更新
+    const timer = setInterval(updateTime, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [viewTimezone]);
 
   // 初始加载或切换周时，自动滚动到当前时间
   useEffect(() => {
     if (timelineRef.current) {
-      const now = new Date();
-      const mins = now.getHours() * 60 + now.getMinutes();
+      const parts = getDateInZone(new Date(), viewTimezone);
+      const nowVisual = new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+      const mins = nowVisual.getHours() * 60 + nowVisual.getMinutes();
       // 滚动位置：当前时间减去 200px 的缓冲，避免贴顶
       timelineRef.current.scrollTop = Math.max(0, (mins / 30) * SLOT_HEIGHT - 200);
     }
-  }, [weekDays]);
+  }, [weekDays, viewTimezone]);
 
   // --- 辅助函数 ---
 
@@ -562,6 +572,17 @@ export default function App() {
           <button className="header-btn add-btn" onClick={handleAddTask} title="新建任务"><PlusIcon /></button>
         </div>
         <div className="app-header-right">
+          <select
+            className="timezone-select"
+            value={viewTimezone}
+            onChange={(e) => setViewTimezone(e.target.value)}
+            title="切换查看时区"
+            style={{ marginRight: '10px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}
+          >
+            {AVAILABLE_TIMEZONES.map(tz => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
           <button className={`header-btn sidebar-toggle ${rightPanelOpen ? 'active' : ''}`} onClick={() => setRightPanelOpen(!rightPanelOpen)} title={rightPanelOpen ? '隐藏改进记录' : '展开改进记录'}>
             <SidebarRightIcon />
           </button>

@@ -1,7 +1,7 @@
 import { DayData, createEmptyDayData, migrateDayData, RecurringConfig, CalendarTask, generateId } from '../types';
+import { getDateInZone, getLocalTimezone, formatTimeInZone } from './timezone';
 
 // 扩展 Window 接口，声明全局 electronAPI 对象
-// 这个对象由 electron/preload.cjs 注入
 declare global {
   interface Window {
     electronAPI?: {
@@ -13,16 +13,13 @@ declare global {
   }
 }
 
-// 浏览器开发模式下使用的 localStorage 键前缀
 const STORAGE_PREFIX = 'daily-calendar-';
 const RECURRING_KEY = 'daily-calendar-recurring';
 
-// 检查是否在 Electron 环境中运行
 function isElectron(): boolean {
   return !!window.electronAPI;
 }
 
-// 加载重复任务配置
 export async function loadRecurringConfigs(): Promise<RecurringConfig[]> {
   if (isElectron()) {
     return await window.electronAPI!.loadRecurringConfigs();
@@ -31,7 +28,6 @@ export async function loadRecurringConfigs(): Promise<RecurringConfig[]> {
   return stored ? JSON.parse(stored) : [];
 }
 
-// 保存重复任务配置
 export async function saveRecurringConfigs(configs: RecurringConfig[]): Promise<void> {
   if (isElectron()) {
     await window.electronAPI!.saveRecurringConfigs(configs);
@@ -43,24 +39,42 @@ export async function saveRecurringConfigs(configs: RecurringConfig[]): Promise<
 // 辅助：计算两个日期相差的天数 (dt - start)
 function diffDays(dt: Date, start: Date): number {
   const oneDay = 24 * 60 * 60 * 1000;
-  // 忽略时分秒，仅比较日期
   const d1 = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
   const d2 = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   return Math.round((d1.getTime() - d2.getTime()) / oneDay);
 }
 
-// 根据规则判断某天是否有该任务
+// 辅助：解析 YYYY-MM-DD 为本地日期对象 (避免 UTC 偏移)
+function parseLocalDate(dateStr: string): Date {
+  const parts = dateStr.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+// 将 Date 对象格式化为 YYYY-MM-DD 字符串 (本地时间)
+export function formatDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const d = date.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// 根据规则判断某天是否有该任务 (日期均视为任务所在时区的本地日期)
+// 注意：此函数仅检查 "在任务定义的时区，某一天是否符合规则"。
+// 它不处理跨时区转换。
 function isRecurringOnDate(config: RecurringConfig, date: Date, dateStr: string): boolean {
   // 1. 检查是否在开始日期之前
-  const start = new Date(config.startDate);
-  // 只比较日期部分
+  const start = parseLocalDate(config.startDate);
+  // 只比较日期部分 (Local Date in Task Zone)
   const current = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
   if (current < startDay) return false;
 
   // 2. 检查是否在结束日期之后
-  if (config.endDate && new Date(config.endDate) < current) return false;
+  if (config.endDate) {
+    const end = parseLocalDate(config.endDate);
+    if (end < current) return false;
+  }
 
   // 3. 检查是否被排除
   if (config.excludeDates?.includes(dateStr)) return false;
@@ -71,22 +85,18 @@ function isRecurringOnDate(config: RecurringConfig, date: Date, dateStr: string)
 
   if (type === 'weekly') {
     // getDay(): 0-6 (周日-周六)
-    // weekDays 应该也是 0-6
     return config.weekDays?.includes(date.getDay()) ?? false;
   }
 
   if (type === 'monthly') {
-    // 按日期匹配 (例如每月 15 号)
     return date.getDate() === start.getDate();
   }
 
   if (type === 'yearly') {
-    // 按月日匹配
     return date.getMonth() === start.getMonth() && date.getDate() === start.getDate();
   }
 
   if (type === 'custom') {
-    // 每 N 天
     if (!config.interval || config.interval <= 0) return false;
     const diff = diffDays(date, start);
     return diff % config.interval === 0;
@@ -96,8 +106,11 @@ function isRecurringOnDate(config: RecurringConfig, date: Date, dateStr: string)
 }
 
 // 加载指定日期的数据（合并重复任务）
-export async function loadDayData(dateStr: string): Promise<DayData> {
-  // 1. 加载当天的普通数据
+// viewTimezone: 当前 UI 查看的时区
+export async function loadDayData(dateStr: string, viewTimezone?: string): Promise<DayData> {
+  const targetZone = viewTimezone || getLocalTimezone();
+
+  // 1. 加载当天的普通数据 (普通任务存储时没有时区概念，默认视为"当地时间" -> 即当前视图时区)
   let dayData: DayData;
   if (isElectron()) {
     const data = await window.electronAPI!.loadDayData(dateStr);
@@ -114,42 +127,105 @@ export async function loadDayData(dateStr: string): Promise<DayData> {
 
   // 2. 加载重复规则并生成实例
   const recurringConfigs = await loadRecurringConfigs();
-  const dateParts = dateStr.split('-').map(Number);
-  const currentDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-
   const generatedTasks: CalendarTask[] = [];
 
-  for (const config of recurringConfigs) {
-    if (isRecurringOnDate(config, currentDate, dateStr)) {
-      // 使用 config.template 生成任务
-      const taskTemplate = config.template;
+  // 计算目标日期的基准时间 (Local Date at 00:00:00)
+  const viewDateParts = dateStr.split('-').map(Number);
+  const baseViewDate = new Date(viewDateParts[0], viewDateParts[1] - 1, viewDateParts[2]);
 
-      generatedTasks.push({
-        ...taskTemplate,
-        id: `recurring_${config.id}_${dateStr}`, // 确定的 ID，格式：recurring_规则ID_日期
-        recurringId: config.id,
-        recurringConfig: config
-      });
+  for (const config of recurringConfigs) {
+    const taskZone = config.timezone || targetZone;
+
+    // 检查范围：前后 1 天 (覆盖所有可能的时区偏移)
+    for (let offset = -1; offset <= 1; offset++) {
+      // 构造 "Candidate Date" (假设它是 TaskZone 的本地日期)
+      const candidateDate = new Date(baseViewDate);
+      candidateDate.setDate(candidateDate.getDate() + offset);
+      const candidateDateStr = formatDateStr(candidateDate);
+
+      // 检查在 taskZone 下，这一天是否有任务
+      if (isRecurringOnDate(config, candidateDate, candidateDateStr)) {
+
+        // 如果有，我们需要计算这个任务时刻在 TargetZone 是哪一天几点。
+
+        // 1. 构造任务在这个 Candidate Day 的绝对时间 (UTC Timestamp)
+        // 我们利用 getDateInZone 的逆操作。
+        // 由于 JS Date API 缺陷，必须试探逼近。
+
+        const year = candidateDate.getFullYear();
+        const month = candidateDate.getMonth() + 1;
+        const day = candidateDate.getDate();
+        const hour = config.template.startHour;
+        const minute = config.template.startMinute;
+
+        // 初始猜测：假设它是 UTC
+        // 实际上这不准确，但作为一个起点
+        let guessTime = Date.UTC(year, month - 1, day, hour, minute);
+
+        // 迭代修正：调整 UTC 时间，使得它在 taskZone 下显示为 target YMDHM
+        // Wait, the diff logic is correct. date-fns-tz does this internally.
+        // Let's implement diff correctly.
+        function getPartsValue(ts: number, tz: string) {
+          const p = getDateInZone(new Date(ts), tz);
+          return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+        }
+
+        const targetValue = Date.UTC(year, month - 1, day, hour, minute);
+        // Reset guess (TaskZone time approx Local Time approx UTC - Offset)
+        // Just start with UTC = targetValue.
+        guessTime = targetValue;
+
+        // Iteration
+        for (let k = 0; k < 3; k++) {
+          const currentVal = getPartsValue(guessTime, taskZone);
+          const diff = currentVal - targetValue;
+          if (Math.abs(diff) < 1000) break;
+          guessTime -= diff;
+        }
+
+        const absoluteTaskTime = new Date(guessTime);
+
+        // 2. 将这个绝对时间转换到 TargetZone
+        const targetParts = getDateInZone(absoluteTaskTime, targetZone);
+
+        // 3. 检查转换后的日期是否匹配当前视图日期 (dateStr)
+        const targetDateStr = `${targetParts.year}-${String(targetParts.month).padStart(2, '0')}-${String(targetParts.day).padStart(2, '0')}`;
+
+        if (targetDateStr === dateStr) {
+          // 匹配！添加到列表，并更新时间
+          generatedTasks.push({
+            ...config.template,
+            id: `recurring_${config.id}_${dateStr}_${offset}`,
+            recurringId: config.id,
+            recurringConfig: config,
+            startHour: targetParts.hour,
+            startMinute: targetParts.minute
+          });
+        }
+      }
     }
   }
 
   // 3. 合并任务
+  // 注意去重：如果同一个 config 在一天产生两个实例 (极其罕见，比如 offset -1 和 0 都映射到了同一天?)
+  // 一般不会，除非任务间隔很短。
   dayData.tasks = [...dayData.tasks, ...generatedTasks];
 
   return dayData;
 }
 
-// 保存指定日期的数据
-// dateStr: 日期字符串
-// data: 要保存的数据对象
 export async function saveDayData(dateStr: string, data: DayData): Promise<void> {
-  // 如果是 Electron 环境，调用主进程 API 保存文件
+  // 过滤掉动态生成的重复任务
+  const dataToSave = {
+    ...data,
+    tasks: data.tasks.filter(t => !t.recurringId)
+  };
+
   if (isElectron()) {
-    await window.electronAPI!.saveDayData(dateStr, data);
+    await window.electronAPI!.saveDayData(dateStr, dataToSave);
     return;
   }
 
-  // 浏览器环境回退方案：保存到 localStorage
   const key = STORAGE_PREFIX + dateStr;
-  localStorage.setItem(key, JSON.stringify(data));
+  localStorage.setItem(key, JSON.stringify(dataToSave));
 }
