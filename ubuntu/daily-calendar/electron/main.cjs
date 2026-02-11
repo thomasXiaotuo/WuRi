@@ -80,6 +80,37 @@ ipcMain.handle('save-day-data', (event, dateStr, data) => {
   return true;
 });
 
+// 重复任务文件路径
+const RECURRING_FILE = path.join(DATA_DIR, 'recurring.json');
+
+// 加载重复任务配置
+function loadRecurringConfigs() {
+  if (fs.existsSync(RECURRING_FILE)) {
+    try {
+      return JSON.parse(fs.readFileSync(RECURRING_FILE, 'utf-8'));
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+// 保存重复任务配置
+function saveRecurringConfigs(configs) {
+  fs.writeFileSync(RECURRING_FILE, JSON.stringify(configs, null, 2), 'utf-8');
+}
+
+// IPC: 加载重复任务
+ipcMain.handle('load-recurring-configs', () => {
+  return loadRecurringConfigs();
+});
+
+// IPC: 保存重复任务
+ipcMain.handle('save-recurring-configs', (event, configs) => {
+  saveRecurringConfigs(configs);
+  return true;
+});
+
 // 当 Electron 初始化完成时创建窗口
 app.whenReady().then(createWindow);
 

@@ -45,6 +45,10 @@ export default function DatePicker({ selectedDate, onDateChange }: DatePickerPro
 
   // 处理头部月份点击：切换月份选择器
   const handleMonthClick = () => {
+    // 切换到月份选择时，重置年份为当前选中日期的年份
+    if (pickerMode !== 'month') {
+      setViewYear(selectedDate.getFullYear());
+    }
     setPickerMode(pickerMode === 'month' ? 'none' : 'month');
   };
 

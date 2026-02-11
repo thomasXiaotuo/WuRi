@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CalendarTask, TASK_COLORS, formatTime, generateId } from '../types';
+import { CalendarTask, TASK_COLORS, formatTime, generateId, RepeatType, RecurringConfig } from '../types';
 
 interface TaskModalProps {
   task: CalendarTask | null; // 要编辑的任务，如果是新建则为 null
@@ -23,12 +23,21 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
   const [location, setLocation] = useState(task?.location || '');
   const [notes, setNotes] = useState(task?.notes || '');
 
+  // 重复任务状态
+  const [repeatType, setRepeatType] = useState<RepeatType>('none');
+  const [customInterval, setCustomInterval] = useState(1);
+  const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]);
+  const [endDate, setEndDate] = useState('');
+
   // 用于自动聚焦标题输入框
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // 组件挂载时自动聚焦
     titleRef.current?.focus();
+
+    // 如果是编辑重复任务，初始化状态 (这里暂时未实现完全的编辑回显，如果是普通编辑，task.recurringConfig 为空)
+    // 如果需要支持编辑重复规则，需要从传入的 task.recurringConfig 读取
   }, []);
 
   // 生成时间选项列表 (00:00 到 23:30)
@@ -51,6 +60,13 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
     durationOptions.push({ value: d, label });
   }
 
+  // 处理周几选择
+  const toggleWeekDay = (day: number) => {
+    setSelectedWeekDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
   // 处理表单提交
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +81,9 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
     // 如果时长变短后小于 30 分钟（例如 23:30 开始的任务），则不保存
     if (finalDuration < 30) return;
 
-    // 构建任务对象
-    const result: CalendarTask = {
-      id: task?.id || generateId(), // 编辑时保留 ID，新建时生成新 ID
+    // 构建基本任务对象
+    const baseTask: CalendarTask = {
+      id: task?.id || generateId(),
       title: title.trim(),
       startHour,
       startMinute,
@@ -76,7 +92,32 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
     };
-    onSave(result, dateStr);
+
+    // 如果设置了重复，构建 RecurringConfig
+    if (repeatType !== 'none') {
+      const config: RecurringConfig = {
+        id: generateId(),
+        type: repeatType,
+        startDate: dateStr,
+        endDate: endDate || undefined,
+        weekDays: repeatType === 'weekly' ? selectedWeekDays : undefined,
+        interval: repeatType === 'custom' ? customInterval : undefined,
+        template: {
+          title: baseTask.title,
+          startHour: baseTask.startHour,
+          startMinute: baseTask.startMinute,
+          duration: baseTask.duration,
+          color: baseTask.color,
+          location: baseTask.location,
+          notes: baseTask.notes,
+        }
+      };
+
+      // 将配置附加到任务对象上，App.tsx 会识别并在保存时处理
+      baseTask.recurringConfig = config;
+    }
+
+    onSave(baseTask, dateStr);
   };
 
   // 点击遮罩层关闭弹窗
@@ -115,6 +156,7 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
               className="modal-select"
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
+              disabled={!!task} // 编辑模式下不允许改日期（简化逻辑）
             >
               {weekDates.map((wd) => (
                 <option key={wd.dateStr} value={wd.dateStr}>{wd.label}</option>
@@ -155,6 +197,78 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
               </select>
             </div>
           </div>
+
+          {/* 重复设置 (仅新建时显示，简化逻辑) */}
+          {!task && (
+            <div className="modal-field">
+              <label className="modal-label">
+                <span className="modal-label-icon">🔁</span> 重复
+              </label>
+              <select
+                className="modal-select"
+                value={repeatType}
+                onChange={(e) => setRepeatType(e.target.value as RepeatType)}
+              >
+                <option value="none">不重复</option>
+                <option value="daily">每天</option>
+                <option value="weekly">每周</option>
+                <option value="monthly">每月</option>
+                <option value="yearly">每年</option>
+                <option value="custom">自定义 (每 N 天)</option>
+              </select>
+
+              {/* 每周设置 */}
+              {repeatType === 'weekly' && (
+                <div className="week-days-selector" style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
+                  {['日', '一', '二', '三', '四', '五', '六'].map((day, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleWeekDay(idx)}
+                      className={`btn-weekday ${selectedWeekDays.includes(idx) ? 'selected' : ''}`}
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd',
+                        background: selectedWeekDays.includes(idx) ? '#007aff' : 'transparent',
+                        color: selectedWeekDays.includes(idx) ? 'white' : '#333',
+                        fontSize: '12px', cursor: 'pointer'
+                      }}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 自定义设置 */}
+              {repeatType === 'custom' && (
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px' }}>每</span>
+                  <input
+                    type="number"
+                    min="1"
+                    className="modal-input"
+                    style={{ width: '60px' }}
+                    value={customInterval}
+                    onChange={(e) => setCustomInterval(Number(e.target.value))}
+                  />
+                  <span style={{ fontSize: '13px' }}>天重复一次</span>
+                </div>
+              )}
+
+              {/* 结束日期 */}
+              {repeatType !== 'none' && (
+                <div style={{ marginTop: '8px' }}>
+                  <label style={{ fontSize: '12px', color: '#666', marginBottom: '4px', display: 'block' }}>结束日期 (可选)</label>
+                  <input
+                    type="date"
+                    className="modal-input"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 地点输入 */}
           <div className="modal-field">

@@ -1,5 +1,20 @@
 // 核心数据类型定义
 
+// 重复类型：无、每天、每周、每月、每年、自定义
+export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+// 重复任务配置
+export interface RecurringConfig {
+  id: string;          // 规则的唯一标识符
+  type: RepeatType;    // 重复类型
+  interval?: number;   // 间隔 (用于 custom, 或 daily/weekly/monthly/yearly 的 "每 N ...")
+  weekDays?: number[]; // 每周的哪些天 (0-6, 周日-周六)
+  startDate: string;   // 开始日期 (YYYY-MM-DD), 用于计算间隔和确定月/日的基准
+  endDate?: string;    // 结束日期 (YYYY-MM-DD, 可选)
+  excludeDates?: string[]; // 排除的日期 (YYYY-MM-DD, 用于删除单次实例)
+  template: Omit<CalendarTask, 'id' | 'recurringId' | 'recurringConfig'>; // 任务模板数据
+}
+
 // 日历任务接口
 export interface CalendarTask {
   id: string;          // 任务唯一标识符
@@ -10,6 +25,8 @@ export interface CalendarTask {
   color: string;       // 任务颜色（十六进制代码）
   location?: string;   // 地点（可选）
   notes?: string;      // 备注/提醒（可选）
+  recurringId?: string; // 如果是重复任务实例，指向 RecurringConfig.id
+  recurringConfig?: RecurringConfig; // 原始配置 (通常只在创建/编辑规则时存在)
 }
 
 // “每日三件好事”接口

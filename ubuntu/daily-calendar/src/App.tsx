@@ -15,7 +15,7 @@ import {
   slotToTime,
   WEEKDAY_NAMES,
 } from './types';
-import { loadDayData, saveDayData } from './utils/storage';
+import { loadDayData, saveDayData, loadRecurringConfigs, saveRecurringConfigs } from './utils/storage';
 import TaskModal from './components/TaskModal';
 import DatePicker from './components/DatePicker';
 
@@ -93,18 +93,19 @@ export default function App() {
   }, [selectedDate]);
 
   // 当周日期列表变化时，加载这一周的所有数据
-  useEffect(() => {
+  const loadAllData = useCallback(async () => {
     if (weekDays.length === 0) return;
-    const loadAll = async () => {
-      const map: Record<string, DayData> = {};
-      for (const day of weekDays) {
-        const ds = formatDateStr(day);
-        map[ds] = await loadDayData(ds);
-      }
-      setWeekDataMap(map);
-    };
-    loadAll();
+    const map: Record<string, DayData> = {};
+    for (const day of weekDays) {
+      const ds = formatDateStr(day);
+      map[ds] = await loadDayData(ds);
+    }
+    setWeekDataMap(map);
   }, [weekDays]);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   // 定时更新当前时间（每 30 秒）
   useEffect(() => {
@@ -187,7 +188,24 @@ export default function App() {
   };
 
   // 保存任务（新建或更新）
-  const handleSaveTask = (task: CalendarTask, targetDateStr: string) => {
+  const handleSaveTask = async (task: CalendarTask, targetDateStr: string) => {
+    // 检查是否是新建重复任务
+    if (task.recurringConfig) {
+      // 1. 加载现有规则
+      const configs = await loadRecurringConfigs();
+      // 2. 添加新规则
+      const newConfigs = [...configs, task.recurringConfig];
+      // 3. 保存
+      await saveRecurringConfigs(newConfigs);
+
+      // 4. 重载当前周数据以显示新生成的任务
+      await loadAllData();
+
+      setShowModal(false);
+      setEditingTask(null);
+      return;
+    }
+
     // 如果是编辑任务，且日期发生了改变
     if (editingTask && targetDateStr !== modalDateStr) {
       // 1. 从旧日期中删除
