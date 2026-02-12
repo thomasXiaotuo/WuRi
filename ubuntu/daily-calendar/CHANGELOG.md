@@ -17,12 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **输入限制**
   - Implemented a hybrid input length limit for "Good Things" and "Improvements":
     实现了“三件好事”和“三项改进”的混合输入长度限制：
-    - 1 Chinese character / CJK punctuation = 1 unit.
-      1个中文字符/标点 = 1个单位。
-    - 1 English word (contiguous alphanumeric) = 1 unit.
-      1个英语单词（连续字母数字） = 1个单位。
-    - 1 Symbol / Emoji = 1 unit.
-      1个符号/表情 = 1个单位。
     - Maximum limit is 75 units.
       最大限制为75个单位。
     - **Strict Blocking**: Input (including spaces) is completely blocked when the limit is reached.
