@@ -234,10 +234,15 @@ export default function App() {
   };
 
   // 点击顶部“新建”按钮
+  // 点击顶部“新建”按钮
   const handleAddTask = () => {
+    // 计算当前视图时区下的“今天”日期
+    const parts = getDateInZone(new Date(), viewTimezone);
+    const todayInView = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+
     setEditingTask(null);
-    setModalDefaults({ startHour: 9, startMinute: 0, dateStr: selectedDateStr });
-    setModalDateStr(selectedDateStr);
+    setModalDefaults({ startHour: 9, startMinute: 0, dateStr: todayInView });
+    setModalDateStr(todayInView);
     setShowModal(true);
   };
 
@@ -522,8 +527,8 @@ export default function App() {
   const weekDateOptions = weekDays.map((d) => ({
     dateStr: formatDateStr(d),
     label: language === 'zh'
-      ? `${d.getMonth() + 1}月${d.getDate()}日 ${t.datePicker.weekdays[weekDays.indexOf(d)]}`
-      : `${t.datePicker.months[d.getMonth()]} ${d.getDate()} ${t.datePicker.weekdays[weekDays.indexOf(d)]}`,
+      ? `${d.getMonth() + 1}月${d.getDate()}日 ${t.datePicker.weekdays[d.getDay()]}`
+      : `${t.datePicker.months[d.getMonth()]} ${d.getDate()} ${t.datePicker.weekdays[d.getDay()]}`,
   }));
 
   // 渲染左侧时间标签列
@@ -703,7 +708,7 @@ export default function App() {
               const isSelected = isSameDay(day, selectedDate);
               return (
                 <div key={i} className={`wk-header-day ${isTodayCol ? 'is-today' : ''} ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedDate(new Date(day))}>
-                  <span className="wk-header-weekday">{t.datePicker.weekdays[i]}</span>
+                  <span className="wk-header-weekday">{t.datePicker.weekdays[day.getDay()]}</span>
                   <span className={`wk-header-date ${isTodayCol ? 'today-circle' : ''}`}>{day.getDate()}</span>
                 </div>
               );

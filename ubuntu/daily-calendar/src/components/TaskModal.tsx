@@ -71,6 +71,14 @@ export default function TaskModal({ task, defaults, currentDateStr, weekDates, o
     durationOptions.push({ value: d, label });
   }
 
+  // 当切换到 weekly 模式时，自动选中当前日期对应的星期
+  useEffect(() => {
+    if (repeatType === 'weekly' && selectedWeekDays.length === 0) {
+      const d = new Date(dateStr.replace(/-/g, '/'));
+      setSelectedWeekDays([d.getDay()]);
+    }
+  }, [repeatType]);
+
   // 处理周几选择
   const toggleWeekDay = (day: number) => {
     setSelectedWeekDays(prev =>

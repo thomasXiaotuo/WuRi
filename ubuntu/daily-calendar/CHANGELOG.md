@@ -34,6 +34,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Description of the fix in English.
   修复的中文描述。
 
+- **Weekly Recurrence Fixes**
+  **每周重复功能修复**
+  - Fixed critical UI bug where weekday labels were shifted by one day (e.g., Thursday displayed as Wednesday).
+    修复了星期标签偏移一天的严重 UI 问题（例如，周四显示为周三）。
+  - Fixed "Weekly" repeat option to automatically select the correct weekday.
+    修复了“每周”重复选项未能自动选中正确星期的问题。
+  - Fixed new task creation to default to the current date in the viewed timezone.
+    修复了新建任务默认日期问题，现在会根据当前查看的时区设置默认日期。
+  - Stabilized recurring task logic to strictly follow calendar dates.
+    优化了重复任务逻辑，确保严格遵循日历日期。
+
 ## [1.0.0] - 2026-02-11 / 2026-02-11
 
 ### Features / 新功能
