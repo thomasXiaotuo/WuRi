@@ -24,15 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changes / 变更
 
-- **Change Title**
-  **变更标题**
-  - Description of the change in English.
-    变更的中文描述。
+- **Build System**
+  **构建系统**
+  - Added support for building Windows Portable executable and NSIS Installer.
+    添加了构建 Windows 便携版和 NSIS 安装程序的支持。
+  - Configured electron-builder for standardized releases.
+    配置了 electron-builder 以进行标准化发布。
 
 ### Fixes / 修复
-
-- Description of the fix in English.
-  修复的中文描述。
 
 - **Weekly Recurrence Fixes**
   **每周重复功能修复**

@@ -1,0 +1,147 @@
+
+> wuri-calendar@1.0.0 electron:build
+> vite build && electron-builder --win
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 36 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist-renderer/[22m[32mindex.html                 [39m[1m[2m  0.40 kB[22m[1m[22m[2m │ gzip:  0.30 kB[22m
+[2mdist-renderer/[22m[35massets/index-CnzZjmjv.css  [39m[1m[2m 16.91 kB[22m[1m[22m[2m │ gzip:  3.70 kB[22m
+[2mdist-renderer/[22m[36massets/index-Cl2jv2qQ.js   [39m[1m[2m227.61 kB[22m[1m[22m[2m │ gzip: 71.34 kB[22m
+[32m✓ built in 460ms[39m
+  • electron-builder  version=26.7.0 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=40.2.1 arch=x64 buildFromSource=false workspaceRoot=C:\zhuomian\my work\calender\home\ubuntu\daily-calendar projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.2.1 appOutDir=release\win-unpacked
+  • searching for node modules  pm=pnpm searchDir=C:\zhuomian\my work\calender\home\ubuntu\daily-calendar
+(node:43072) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\WuRi Calendar (吾日日历).exe
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=673ms
+  ⨯ cannot execute  cause=exit status 2
+                    out=
+    7-Zip (a) 21.07 (x64) : Copyright (c) 1999-2021 Igor Pavlov : 2021-12-26
+    
+    Scanning the drive for archives:
+    1 file, 5635384 bytes (5504 KiB)
+    
+    Extracting archive: C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447.7z
+    --
+    Path = C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447.7z
+    Type = 7z
+    Physical Size = 5635384
+    Headers Size = 1492
+    Method = LZMA2:24m LZMA:20 BCJ2
+    Solid = +
+    Blocks = 2
+    
+    
+    Sub items Errors: 2
+    
+    Archives with Errors: 1
+    
+    Sub items Errors: 2
+    
+                    errorOut=ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447\darwin\10.12\lib\libcrypto.dylib
+    ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447\darwin\10.12\lib\libssl.dylib
+    
+                    command='C:\zhuomian\my work\calender\home\ubuntu\daily-calendar\node_modules\.pnpm\7zip-bin@5.2.0\node_modules\7zip-bin\win\x64\7za.exe' x -snld -bd 'C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447.7z' '-oC:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\765615447'
+                    workingDir=C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=620ms
+  ⨯ cannot execute  cause=exit status 2
+                    out=
+    7-Zip (a) 21.07 (x64) : Copyright (c) 1999-2021 Igor Pavlov : 2021-12-26
+    
+    Scanning the drive for archives:
+    1 file, 5635384 bytes (5504 KiB)
+    
+    Extracting archive: C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443.7z
+    --
+    Path = C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443.7z
+    Type = 7z
+    Physical Size = 5635384
+    Headers Size = 1492
+    Method = LZMA2:24m LZMA:20 BCJ2
+    Solid = +
+    Blocks = 2
+    
+    
+    Sub items Errors: 2
+    
+    Archives with Errors: 1
+    
+    Sub items Errors: 2
+    
+                    errorOut=ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443\darwin\10.12\lib\libcrypto.dylib
+    ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443\darwin\10.12\lib\libssl.dylib
+    
+                    command='C:\zhuomian\my work\calender\home\ubuntu\daily-calendar\node_modules\.pnpm\7zip-bin@5.2.0\node_modules\7zip-bin\win\x64\7za.exe' x -snld -bd 'C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443.7z' '-oC:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\849780443'
+                    workingDir=C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=570ms
+  ⨯ cannot execute  cause=exit status 2
+                    out=
+    7-Zip (a) 21.07 (x64) : Copyright (c) 1999-2021 Igor Pavlov : 2021-12-26
+    
+    Scanning the drive for archives:
+    1 file, 5635384 bytes (5504 KiB)
+    
+    Extracting archive: C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515.7z
+    --
+    Path = C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515.7z
+    Type = 7z
+    Physical Size = 5635384
+    Headers Size = 1492
+    Method = LZMA2:24m LZMA:20 BCJ2
+    Solid = +
+    Blocks = 2
+    
+    
+    Sub items Errors: 2
+    
+    Archives with Errors: 1
+    
+    Sub items Errors: 2
+    
+                    errorOut=ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515\darwin\10.12\lib\libcrypto.dylib
+    ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515\darwin\10.12\lib\libssl.dylib
+    
+                    command='C:\zhuomian\my work\calender\home\ubuntu\daily-calendar\node_modules\.pnpm\7zip-bin@5.2.0\node_modules\7zip-bin\win\x64\7za.exe' x -snld -bd 'C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515.7z' '-oC:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\946782515'
+                    workingDir=C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=629ms
+  ⨯ cannot execute  cause=exit status 2
+                    out=
+    7-Zip (a) 21.07 (x64) : Copyright (c) 1999-2021 Igor Pavlov : 2021-12-26
+    
+    Scanning the drive for archives:
+    1 file, 5635384 bytes (5504 KiB)
+    
+    Extracting archive: C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775.7z
+    --
+    Path = C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775.7z
+    Type = 7z
+    Physical Size = 5635384
+    Headers Size = 1492
+    Method = LZMA2:24m LZMA:20 BCJ2
+    Solid = +
+    Blocks = 2
+    
+    
+    Sub items Errors: 2
+    
+    Archives with Errors: 1
+    
+    Sub items Errors: 2
+    
+                    errorOut=ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775\darwin\10.12\lib\libcrypto.dylib
+    ERROR: Cannot create symbolic link : ___________ : C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775\darwin\10.12\lib\libssl.dylib
+    
+                    command='C:\zhuomian\my work\calender\home\ubuntu\daily-calendar\node_modules\.pnpm\7zip-bin@5.2.0\node_modules\7zip-bin\win\x64\7za.exe' x -snld -bd 'C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775.7z' '-oC:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign\744364775'
+                    workingDir=C:\Users\32126\AppData\Local\electron-builder\Cache\winCodeSign
