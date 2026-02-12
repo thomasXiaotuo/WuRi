@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 并且本项目遵守 [语义化版本控制](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
-## [1.0.1] - Unreleased / 未发布
+## [1.0.1] - 2026-02-11 / 2026-02-12
 
 ### Features / 新功能
 
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stabilized recurring task logic to strictly follow calendar dates.
     优化了重复任务逻辑，确保严格遵循日历日期。
 
-## [1.0.0] - 2026-02-11 / 2026-02-11
+## [1.0.0] - 2026-02-06 / 2026-02-10
 
 ### Features / 新功能
 
